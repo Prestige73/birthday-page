@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Happy Birthday</title>
+<style>
+  :root{
+    --heart-alpha: .35;   /* heart transparency (0=inv, 1=solid) */
+    --name-alpha:  .88;   /* name transparency (keep higher than heart) */
+  }
+
+  body{
+    margin:0;
+    background:pink;
+    height:100vh;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    align-items:center;
+    padding-top:150px;          /* push content down a bit */
+    text-align:center;
+    font-family:"Segoe UI", system-ui, sans-serif;
+    color:#fff;
+    position:relative;
+  }
+
+  /* Make text pop (clearer & less faint) */
+  h1{
+    margin:0;
+    font-weight:800;
+    font-size:clamp(28px, 6vw, 48px);
+    text-shadow:0 3px 12px rgba(0,0,0,.7);
+    z-index:3;
+  }
+  p{
+    margin:28px 16px 0;
+    max-width:820px;
+    font-size:clamp(16px, 2.6vw, 20px);
+    line-height:1.6;
+    font-weight:600;
+    text-shadow:0 3px 12px rgba(0,0,0,.7);
+    z-index:3;
+  }
+
+  /* BIG background heart (CSS shape) */
+  .big-heart{
+    position:fixed;
+    top:50%;
+    left:50%;
+    width:320px;
+    height:280px;
+    transform:translate(-50%, -50%) rotate(-45deg);
+    background:rgba(255, 0, 0, var(--heart-alpha)); /* more red but transparent */
+    filter:saturate(1.3);
+    z-index:0; /* behind everything */
+  }
+  .big-heart::before,
+  .big-heart::after{
+    content:"";
+    position:absolute;
+    width:320px;
+    height:280px;
+    background:rgba(255, 0, 0, var(--heart-alpha));
+    border-radius:50%;
+  }
+  .big-heart::before{ top:-160px; left:0; }
+  .big-heart::after { top:0; left:160px; }
+
+  /* Name inside heart (slightly transparent, more visible than heart) */
+  .heart-name{
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    z-index:3;                 /* above confetti & hearts */
+    color:rgba(255,255,255, var(--name-alpha));
+    font-weight:900;
+    font-size:clamp(28px, 6vw, 56px);
+    text-shadow:0 4px 16px rgba(0,0,0,.75);
+    max-width:90vw;            /* won't get cut off on phones */
+    line-height:1.1;
+    white-space:normal;        /* allow wrapping for long names */
+    pointer-events:none;
+  }
+
+  /* Canvases (visual effects behind text) */
+  canvas{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+  }
+  #hearts{ z-index:1; }    /* floating little hearts (behind confetti) */
+  #confetti{ z-index:2; }  /* confetti */
+
+  /* Optional: nicer scrolling on mobile (just in case) */
+  *{ -webkit-tap-highlight-color: transparent; }
+</style>
+</head>
+<body>
+  <!-- Transparent big red heart -->
+  <div class="big-heart" aria-hidden="true"></div>
+
+  <!-- 🔁 CHANGE THE NAME HERE (replace Maryam) -->
+  <div class="heart-name">My<br>Senior<br>Woman</div>
+
+  <h1>❤️ Happy Birthday, Love of my life. ❤️</h1>
+  <p>
+    You are the most amazing, beautiful and gorgeous person in my life, and today I celebrate not just your birthday, 
+    but every beautiful moment we’ve shared together. as i always appreciate <br>
+    you, i always look forward to years to come that we will spend together<br>
+    and i want you to always know that whether in good or bad times i will always choose YOU<br>
+    always want you by my side and will always be your number 1 friend, partner and your biggest supporter<br> 
+    youre always on my mind and always in my heart! I love you till infinity and beyond..<br>
+     to more love, laughter, and good times ahead of us. To the queen of my heart I LOVE YOU!!!  ❤️
+  </p>
+
+  <!-- Effects -->
+  <canvas id="hearts"></canvas>
+  <canvas id="confetti"></canvas>
+
+  <script>
+    alert("🎉 Happy Birthday, my love! ❤️");
+
+    /* ===== Resize helpers ===== */
+    const heartsCanvas = document.getElementById('hearts');
+    const hctx = heartsCanvas.getContext('2d');
+    const confettiCanvas = document.getElementById('confetti');
+    const cctx = confettiCanvas.getContext('2d');
+    let W = 0, H = 0;
+
+    function resizeAll(){
+      W = heartsCanvas.width = confettiCanvas.width = window.innerWidth;
+      H = heartsCanvas.height = confettiCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeAll, { passive:true });
+    resizeAll();
+
+    /* ===== Floating little hearts (background) ===== */
+    const hearts = [];
+    function newHeart(){
+      return {
+        x: Math.random() * W,
+        y: H + Math.random() * H * 0.5,
+        size: 10 + Math.random() * 22,
+        speed: 0.4 + Math.random() * 1.2,
+        alpha: 0.35 + Math.random() * 0.35
+      };
+    }
+    for(let i=0;i<30;i++) hearts.push(newHeart());
+
+    function drawHeartPath(ctx, x, y, s){
+      const top = s * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(x, y + top);
+      ctx.bezierCurveTo(x, y, x - s/2, y, x - s/2, y + top);
+      ctx.bezierCurveTo(x - s/2, y + (s + top)/2, x, y + (s + top)/2, x, y + s);
+      ctx.bezierCurveTo(x, y + (s + top)/2, x + s/2, y + (s + top)/2, x + s/2, y + top);
+      ctx.bezierCurveTo(x + s/2, y, x, y, x, y + top);
+      ctx.closePath();
+    }
+
+    function renderHearts(){
+      hctx.clearRect(0,0,W,H);
+      hearts.forEach(h=>{
+        hctx.globalAlpha = h.alpha;
+        hctx.fillStyle = 'rgba(255,0,0,0.6)';
+        drawHeartPath(hctx, h.x, h.y, h.size);
+        hctx.fill();
+        h.y -= h.speed;
+        if (h.y < -h.size) {
+          const nh = newHeart();
+          h.x = nh.x; h.y = nh.y; h.size = nh.size; h.speed = nh.speed; h.alpha = nh.alpha;
+        }
+      });
+      hctx.globalAlpha = 1;
+    }
+
+    /* ===== Confetti (foreground) ===== */
+    const confetti = [];
+    function randCol(){
+      const cols = ['#ff0','#0ff','#f0f','#0f0','#00f','#f00','#fff'];
+      return cols[(cols.length * Math.random()) | 0];
+    }
+    for(let i=0;i<150;i++){
+      confetti.push({
+        x: Math.random()*W,
+        y: Math.random()*H - H,
+        r: Math.random()*6 + 4,
+        d: Math.random()*150 + 50,
+        color: randCol(),
+        tilt: Math.random()*20 - 10,
+        tiltInc: Math.random()*0.07 + 0.05,
+        tiltAng: 0
+      });
+    }
+
+    function renderConfetti(){
+      cctx.clearRect(0,0,W,H);
+      confetti.forEach(p=>{
+        cctx.beginPath();
+        cctx.lineWidth = p.r;
+        cctx.strokeStyle = p.color;
+        cctx.moveTo(p.x + p.tilt + p.r/4, p.y);
+        cctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r/4);
+        cctx.stroke();
+
+        p.tiltAng += p.tiltInc;
+        p.y += (Math.cos(p.d) + 3 + p.r/2) / 2;
+        p.tilt = Math.sin(p.tiltAng - p.d/3) * 15;
+        if(p.y > H){ p.x = Math.random()*W; p.y = -10; }
+      });
+    }
+
+    /* ===== Master animation loop ===== */
+    function animate(){
+      renderHearts();
+      renderConfetti();
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>
